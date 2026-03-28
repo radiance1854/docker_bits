@@ -1,0 +1,62 @@
+services:
+  prometheus:
+    image: prom/prometheus
+    user: root
+    container_name: prometheus
+    hostname: prometheus
+    restart: always
+    volumes:
+      - ./prometheus/config:/etc/prometheus
+      - ./prometheus/data:/prometheus
+    command: 
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --web.console.libraries=/usr/share/prometheus/console_libraries
+      - --web.console.templates=/usr/share/prometheus/consoles
+      - --web.config.file=/etc/prometheus/web.yml
+      - --storage.tsdb.retention.time=395d
+      - --web.enable-lifecycle
+    ports:
+      - 9090:9090
+    networks:
+      - prometheus-net
+  
+  snmp-exporter:
+    image: prom/snmp-exporter
+    user: root
+    container_name: snmp-exporter
+    hostname: snmp-exporter
+    restart: always
+    volumes:
+      - ./snmp-exporter:/etc/snmp_exporter
+    command: 
+      - --config.file=/etc/snmp_exporter/snmp.yml
+      - --web.config.file=/etc/snmp_exporter/web.yml
+    ports:
+      - 9116:9116
+    networks:
+      - prometheus-net
+
+  alertmanager:
+    image: prom/alertmanager
+    user: root
+    container_name: alertmanager
+    hostname: alertmanager
+    restart: always
+    volumes:
+      - ./alertmanager/config:/config
+      - ./alertmanager/data:/data
+    command:
+      - --config.file=/config/alertmanager.yml
+      - --web.config.file=/config/web.yml
+    ports:
+      - "9093:9093"
+    networks:
+      - prometheus-net    
+
+networks:
+  prometheus-net:
+    name: prometheus-net
+    ipam:
+      config:
+        - subnet: 192.168.50.0/24
